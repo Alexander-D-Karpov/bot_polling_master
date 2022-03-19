@@ -5,6 +5,7 @@ a small telegram bot to handle messages from users on several bots
 ### Installation
 ```shell
 $ poetry install
+$ pip3 install eve
 ```
 ### Usage
 ```shell
