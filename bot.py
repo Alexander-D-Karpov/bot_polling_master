@@ -27,8 +27,8 @@ class BotCallback(CallbackData, prefix="callback_bot"):
 
 
 def _get_inline_tags(id: int, polling_list) -> types.InlineKeyboardMarkup:
-    url = f"https://true.loca.lt/api/from-tg-id-to-admin-chats/{id}/"
-    cb_data = json.loads(requests.get(url).text)["chats"]
+    url = f"http://127.0.0.1:8000/api/from-tg-id-to-admin-chats/{id}/"
+    cb_data = json.loads(requests.get(url, verify=False).text)["chats"]
     keyboard_markup = InlineKeyboardBuilder()
 
     for x in cb_data:
@@ -72,7 +72,7 @@ async def on_bot_startup(bot: Bot):
 
 
 async def on_bot_shutdown(bot: Bot):
-    bot_data = json.loads(requests.get(f"https://true.loca.lt/api/chat/{bot.id}").text)
+    bot_data = json.loads(requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text, verify=False)
     if bot_data:
         for user in bot_data["viewers"]:
             await bot.send_message(chat_id=user["tg_id"], text="bot shutdown")
@@ -156,7 +156,7 @@ async def add_bot(
             bot_user = await bot.get_me()
             await main_bot.send_message(chat_id=user_id, text=f"New bot started: @{bot_user.username}")
 
-            url = "https://true.loca.lt/api/chat-from-username/"
+            url = "http://127.0.0.1:8000/api/chat-from-username/"
 
             dat = {
                 "name": bot_user.first_name,
@@ -168,7 +168,7 @@ async def add_bot(
             r = requests.post(
                 url,
                 data=json.dumps(dat),
-                headers={"content-type": "application/json"},
+                headers={"content-type": "application/json"}, verify=False
             )
 
         except (TokenValidationError, TelegramUnauthorizedError) as err:
@@ -198,14 +198,14 @@ async def stop_bot(
 async def echo(message: types.Message, bot: Bot):
     if bot.id != MAIN_BOT:
         bot_data = json.loads(
-            requests.get(f"https://true.loca.lt/api/chat/{bot.id}").text
+            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text, verify=False
         )
         if message.chat.id == int(bot_data["admin"]["tg_id"]):
             if message.reply_to_message and "@" in message.reply_to_message.text:
                 usr = message.reply_to_message.text.split("@")[1].split(":")[0]
                 usr_dat = json.loads(
                     requests.get(
-                        f"https://true.loca.lt/api/from-username-to-user/{usr}"
+                        f"http://127.0.0.1:8000/api/from-username-to-user/{usr}", verify=False
                     ).text
                 )
                 await bot.send_message(
@@ -224,7 +224,7 @@ async def echo(message: types.Message, bot: Bot):
                 text=f"message from @{message.chat.username}:\n " + message.text,
             )
 
-            url = "https://true.loca.lt/api/message-from-username/"
+            url = "http://127.0.0.1:8000/api/message-from-username/"
 
             dat = {
                 "author_tg_nickname": message.chat.id,
@@ -233,20 +233,20 @@ async def echo(message: types.Message, bot: Bot):
                 "message_id": message.message_id
             }
             r = requests.post(
-                url, data=json.dumps(dat), headers={"content-type": "application/json"}
+                url, data=json.dumps(dat), headers={"content-type": "application/json"}, verify=False
             )
 
 
 async def start(message: types.Message, bot: Bot):
-    url = "https://true.loca.lt/api/user/"
+    url = "http://127.0.0.1:8000/api/user/"
     dat = {"username": message.from_user.username, "tg_id": message.from_user.id}
     requests.post(
-        url, data=json.dumps(dat), headers={"content-type": "application/json"}
+        url, data=json.dumps(dat), headers={"content-type": "application/json"}, verify=False
     )
 
     if bot.id != MAIN_BOT:
         bot_data = json.loads(
-            requests.get(f"https://true.loca.lt/api/chat/{bot.id}").text
+            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}", verify=False).text
         )
         if message.chat.id != int(bot_data["admin"]["tg_id"]):
             await bot.send_message(
@@ -257,17 +257,17 @@ async def start(message: types.Message, bot: Bot):
                 chat_id=message.chat.id,
                 text=f"Welcome to the chat, @{message.from_user.username}",
             )
-            url = "https://true.loca.lt/api/add-viewer-to-chat/"
+            url = "http://127.0.0.1:8000/api/add-viewer-to-chat/"
             dat = {"chat_tg_id": bot.id, "user_tg_id": message.from_user.id}
             requests.post(
-                url, data=json.dumps(dat), headers={"content-type": "application/json"}
+                url, data=json.dumps(dat), verify=False, headers={"content-type": "application/json"}
             )
 
 
 async def user_list(message: types.Message, bot: Bot):
     if bot.id != MAIN_BOT:
         bot_data = json.loads(
-            requests.get(f"https://true.loca.lt/api/chat/{bot.id}").text
+            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}", verify=False).text
         )
         if message.chat.id == int(bot_data["admin"]["tg_id"]):
             if bot_data["viewers"]:
@@ -280,11 +280,9 @@ async def user_list(message: types.Message, bot: Bot):
 
 async def help(message: types.Message, bot: Bot):
     if bot.id == MAIN_BOT:
-        await message.answer("""To get your token go to @BotFather and generate your token, then go to 
-        http://b16c-95-55-137-45.ngrok.io/, login and add new bot""")
+        await message.answer("""To get your token go to @BotFather and generate your token, then go to http://b16c-95-55-137-45.ngrok.io/, login and add new bot""")
     else:
-        await message.answer("""You can broadcast messages or send the directly to user(to send to user reply to 
-        user's message) if you are an admit. Also you can get a list of users in your bot by pressing /list""")
+        await message.answer("""You can broadcast messages or send the directly to user(to send to user reply to user's message) if you are an admit. Also you can get a list of users in your bot by pressing /list""")
 
 
 async def main():
