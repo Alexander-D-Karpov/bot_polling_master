@@ -27,7 +27,6 @@ class BotCallback(CallbackData, prefix="callback_bot"):
 
 
 def _get_inline_tags(id: int, polling_list) -> types.InlineKeyboardMarkup:
-    print(polling_list)
     url = f"https://true.loca.lt/api/from-tg-id-to-admin-chats/{id}/"
     cb_data = json.loads(requests.get(url).text)["chats"]
     keyboard_markup = InlineKeyboardBuilder()
@@ -60,16 +59,16 @@ async def set_commands(bot: Bot):
                 description="get list of users(for admins only)",
             ),
         ]
+    commands += BotCommand(
+                command="help",
+                description="get info on how to use bot",
+            ),
 
     await bot.set_my_commands(commands=commands, scope=BotCommandScopeDefault())
 
 
 async def on_bot_startup(bot: Bot):
     await set_commands(bot)
-    bot_data = json.loads(requests.get(f"https://true.loca.lt/api/chat/{bot.id}").text)
-    if bot_data:
-        for user in bot_data["viewers"]:
-            await bot.send_message(chat_id=user["tg_id"], text="bot started")
 
 
 async def on_bot_shutdown(bot: Bot):
@@ -171,7 +170,6 @@ async def add_bot(
                 data=json.dumps(dat),
                 headers={"content-type": "application/json"},
             )
-            print(r.status_code)
 
         except (TokenValidationError, TelegramUnauthorizedError) as err:
             return
@@ -237,7 +235,6 @@ async def echo(message: types.Message, bot: Bot):
             r = requests.post(
                 url, data=json.dumps(dat), headers={"content-type": "application/json"}
             )
-            print(r.status_code)
 
 
 async def start(message: types.Message, bot: Bot):
@@ -281,6 +278,15 @@ async def user_list(message: types.Message, bot: Bot):
                 await message.answer("nobody has joined your chat yet :(")
 
 
+async def help(message: types.Message, bot: Bot):
+    if bot.id == MAIN_BOT:
+        await message.answer("""To get your token go to @BotFather and generate your token, then go to 
+        http://b16c-95-55-137-45.ngrok.io/, login and add new bot""")
+    else:
+        await message.answer("""You can broadcast messages or send the directly to user(to send to user reply to 
+        user's message) if you are an admit. Also you can get a list of users in your bot by pressing /list""")
+
+
 async def main():
     logging.basicConfig(
         level=logging.INFO,
@@ -296,6 +302,7 @@ async def main():
     dp.message.register(init_bot, Command(commands="edit"))
     dp.callback_query.register(callback_action)
     dp.message.register(user_list, Command(commands="list"))
+    dp.message.register(help, Command(commands="help"))
     dp.message.register(start, Command(commands=["start", "restart"]))
     dp.message.register(echo)
 
