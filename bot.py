@@ -28,7 +28,7 @@ class BotCallback(CallbackData, prefix="callback_bot"):
 
 def _get_inline_tags(id: int, polling_list) -> types.InlineKeyboardMarkup:
     url = f"http://127.0.0.1:8000/api/from-tg-id-to-admin-chats/{id}/"
-    cb_data = json.loads(requests.get(url, verify=False).text)["chats"]
+    cb_data = json.loads(requests.get(url).text)["chats"]
     keyboard_markup = InlineKeyboardBuilder()
 
     for x in cb_data:
@@ -72,7 +72,7 @@ async def on_bot_startup(bot: Bot):
 
 
 async def on_bot_shutdown(bot: Bot):
-    bot_data = json.loads(requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text, verify=False)
+    bot_data = json.loads(requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text)
     if bot_data:
         for user in bot_data["viewers"]:
             await bot.send_message(chat_id=user["tg_id"], text="bot shutdown")
@@ -168,7 +168,7 @@ async def add_bot(
             r = requests.post(
                 url,
                 data=json.dumps(dat),
-                headers={"content-type": "application/json"}, verify=False
+                headers={"content-type": "application/json"}
             )
 
         except (TokenValidationError, TelegramUnauthorizedError) as err:
@@ -198,14 +198,14 @@ async def stop_bot(
 async def echo(message: types.Message, bot: Bot):
     if bot.id != MAIN_BOT:
         bot_data = json.loads(
-            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text, verify=False
+            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text
         )
         if message.chat.id == int(bot_data["admin"]["tg_id"]):
             if message.reply_to_message and "@" in message.reply_to_message.text:
                 usr = message.reply_to_message.text.split("@")[1].split(":")[0]
                 usr_dat = json.loads(
                     requests.get(
-                        f"http://127.0.0.1:8000/api/from-username-to-user/{usr}", verify=False
+                        f"http://127.0.0.1:8000/api/from-username-to-user/{usr}"
                     ).text
                 )
                 await bot.send_message(
@@ -233,7 +233,7 @@ async def echo(message: types.Message, bot: Bot):
                 "message_id": message.message_id
             }
             r = requests.post(
-                url, data=json.dumps(dat), headers={"content-type": "application/json"}, verify=False
+                url, data=json.dumps(dat), headers={"content-type": "application/json"}
             )
 
 
@@ -241,12 +241,12 @@ async def start(message: types.Message, bot: Bot):
     url = "http://127.0.0.1:8000/api/user/"
     dat = {"username": message.from_user.username, "tg_id": message.from_user.id}
     requests.post(
-        url, data=json.dumps(dat), headers={"content-type": "application/json"}, verify=False
+        url, data=json.dumps(dat), headers={"content-type": "application/json"}
     )
 
     if bot.id != MAIN_BOT:
         bot_data = json.loads(
-            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}", verify=False).text
+            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text
         )
         if message.chat.id != int(bot_data["admin"]["tg_id"]):
             await bot.send_message(
@@ -260,14 +260,14 @@ async def start(message: types.Message, bot: Bot):
             url = "http://127.0.0.1:8000/api/add-viewer-to-chat/"
             dat = {"chat_tg_id": bot.id, "user_tg_id": message.from_user.id}
             requests.post(
-                url, data=json.dumps(dat), verify=False, headers={"content-type": "application/json"}
+                url, data=json.dumps(dat), headers={"content-type": "application/json"}
             )
 
 
 async def user_list(message: types.Message, bot: Bot):
     if bot.id != MAIN_BOT:
         bot_data = json.loads(
-            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}", verify=False).text
+            requests.get(f"http://127.0.0.1:8000/api/chat/{bot.id}").text
         )
         if message.chat.id == int(bot_data["admin"]["tg_id"]):
             if bot_data["viewers"]:
